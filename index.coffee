@@ -1,25 +1,23 @@
 
-command: "world-clock.widget/world-clock.sh"
+command: "world-clock.widget/command.sh"
 
-refreshFrequency: '5m'
+refreshFrequency: '1m'
 
 style: """
-clock-background = rgba(255,255,255,.5)
-clock-text = black
-city-background = #075698
-city-border = city-background
-city-text = white
-arrow-width = .4em
-arrow-height = .6em
-arrow-top = 0em - arrow-height
-zone-bar-height = arrow-height + 1.6em
+clock-background = rgba(0,0,0,.5)
+clock-text = white
+zone-background = rgba(0,0,0,1)
+zone-border-color = rgba(255,255,255,.8)
+zone-border-width = 2px
+zone-text = white
+zone-bar-height = 1.2em
 
 width 100%
 
 .world.clock
     width 100%
     background-color clock-background
-    border-color black
+    border-color clock-text
     border-style solid
     border-width 0 0 1px 0
     font-family 'Share Tech Mono'
@@ -27,6 +25,7 @@ width 100%
     margin-bottom 1.5em
 
 .hours.bar
+    padding-top 1.4em
     display flex
     flex-flow row no-wrap
     width 200%
@@ -34,7 +33,6 @@ width 100%
 
 .hour
     height 1.5em
-    background-color: clock-background
     display flex
     flex-flow row no-wrap
     justify-content center
@@ -61,43 +59,41 @@ width 100%
     width 100%
     height zone-bar-height
     position relative
-    background-color clock-background
 
-.city
+.today
     display inline-block
-    color city-text
-    background-color city-background
-    background-clip border-box
-    border-color city-border
-    border-width 1px
+    color zone-text
+    position absolute
+    top 100%
+    left 25%
+
+.tomorrow
+    display inline-block
+    color zone-text
+    position absolute
+    top 100%
+    left 75%
+
+.zone
+    display inline-block
+    color zone-text
+    background-color zone-background
+    background-clip padding-box
+    border-color zone-border-color
+    border-width zone-border-width
     border-style solid
     border-radius 0 8px 8px 8px
     padding-left .5em
     padding-right .5em
+    padding-top .1em
+    padding-bottom .1em
     position absolute
-    top arrow-height
-
-.city:before
-    content ""
-    position absolute
-    top arrow-top
-    left -1px
-    width 0
-    border-top-width arrow-height
-    border-right-width 0px
-    border-bottom-width 0px
-    border-left-width arrow-width
-    border-style solid
-    border-color transparent city-border
+    top 0
+    transform-origin top left
+    transform: rotate(30deg)
 """
 
 render: (output) ->
-    #time = new Date()
-    #hour = time.getUTCHours()
-    #minute = time.getUTCMinutes()
-    #offset = -(hour + minute / 60)
-    #hoursLeft = offset / 24 * 100 + '%'
-
     hourElements = for hour in [12..59]
         h = hour % 24;
         label = if h < 10 then ('0' + h) else ('' + h)
@@ -112,6 +108,11 @@ render: (output) ->
             </svg>
         </div>
         """
+
+    hourElements.push """
+        <div class="today">Today</div>
+        <div class="tomorrow">Tomorrow</div>
+    """
     hoursHTML = hourElements.join('')
 
     zones = output.split('\n')
@@ -124,7 +125,7 @@ render: (output) ->
             offset = (if (sign is '-') then -1 else +1) * (hours * 60 + minutes)
             left = (offset + 720) / 1440 * 100 + '%'
             """
-                <div class="city" style="left:#{left};">#{name}</div>
+                <div class="zone" style="left:#{left};">#{name}</div>
             """
         else
             ""
@@ -143,9 +144,14 @@ render: (output) ->
     """
 
 update: (output, domEl) ->
+    locale = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     time = new Date()
+    today = time.getUTCDay()
+    tomorrow = (today + 1) % 7
     hour = time.getUTCHours()
     minute = time.getUTCMinutes()
     offset = -(hour + minute / 60)
     hoursLeft = offset / 24 * 100 + '%'
     $(domEl).find('.hours.bar').css('left', hoursLeft)
+    $(domEl).find('.today').text(locale[today])
+    $(domEl).find('.tomorrow').text(locale[tomorrow])
